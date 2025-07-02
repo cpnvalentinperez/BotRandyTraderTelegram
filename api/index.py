@@ -63,7 +63,18 @@ async def handle_symbol(update: Update, context: ContextTypes.DEFAULT_TYPE):
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_symbol))
 
-# Endpoint webhook
+# Evento startup: inicia la app de telegram (para procesar updates)
+@app.on_event("startup")
+async def startup():
+    await telegram_app.initialize()
+    await telegram_app.start()
+
+# Evento shutdown: para la app de telegram
+@app.on_event("shutdown")
+async def shutdown():
+    await telegram_app.stop()
+
+# Endpoint webhook para recibir updates
 @app.post("/webhook")
 async def process_webhook(request: Request):
     json_data = await request.json()
@@ -76,12 +87,11 @@ async def process_webhook(request: Request):
 async def root():
     return {"message": "RandyTrader online"}
 
-# Configura webhook solo si lo corres localmente para test
-import asyncio
-
-async def set_webhook():
-    webhook_url = f"{WEBHOOK_URL}/webhook"
-    await telegram_app.bot.set_webhook(url=webhook_url)
-    print(f"Webhook set to {webhook_url}")
-
-asyncio.run(set_webhook())
+# Opcional: comentar o eliminar este bloque si deployas a Vercel
+# porque Vercel ejecuta la app automáticamente y no debes setear webhook acá
+# import asyncio
+# async def set_webhook():
+#     webhook_url = f"{WEBHOOK_URL}/webhook"
+#     await telegram_app.bot.set_webhook(url=webhook_url)
+#     print(f"Webhook set to {webhook_url}")
+# asyncio.run(set_webhook())
