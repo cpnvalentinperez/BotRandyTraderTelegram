@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from binance.client import Client
+from pycoingecko import CoinGeckoAPI
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -10,17 +10,24 @@ from telegram.ext import (
     filters
 )
 
-# 📌 1. Carga las variables del archivo .env
+# Cargar .env si tienes otras variables (p. ej. TELEGRAM_TOKEN)
 load_dotenv()
 
-BINANCE_API_KEY = os.getenv('BINANCE_API_KEY')
-BINANCE_API_SECRET = os.getenv('BINANCE_API_SECRET')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
-# 📌 2. Instancia del cliente de Binance
-client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+# Cliente CoinGecko
+cg = CoinGeckoAPI()
 
-# ✅ 3. Comando /start ➜ muestra un teclado con pares comunes
+# Diccionario simple para mapear tickers a IDs de CoinGecko
+SYMBOLS = {
+    'BTCUSDT': 'bitcoin',
+    'ETHUSDT': 'ethereum',
+    'ADAUSDT': 'cardano',
+    'BNBUSDT': 'binancecoin',
+    'SOLUSDT': 'solana',
+    'XRPUSDT': 'ripple'
+}
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         ['BTCUSDT', 'ETHUSDT'],
@@ -30,35 +37,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text(
         "👋 ¡Hola! Soy RandyTrader.\n"
-        "📊 Elige un par de criptomonedas tocando un botón o escríbelo:\n"
-        "(Ejemplo: BTCUSDT, ETHUSDT)",
+        "📊 Elige un par tocando un botón o escríbelo (ej: BTCUSDT):",
         reply_markup=reply_markup
     )
 
-# ✅ 4. Manejar cualquier texto ➜ trata el texto como símbolo a consultar
 async def handle_symbol(update: Update, context: ContextTypes.DEFAULT_TYPE):
     symbol = update.message.text.upper()
-    try:
-        ticker = client.get_symbol_ticker(symbol=symbol)
-        price_float = float(ticker['price'])
-        precio_formateado = f"{price_float:,.2f}"
+
+    if symbol not in SYMBOLS:
         await update.message.reply_text(
-            f"📈 El precio actual de {symbol} es **${precio_formateado}**",
+            f"❌ Símbolo no soportado: {symbol}.\n"
+            "Usa /start para ver los pares disponibles."
+        )
+        return
+
+    coin_id = SYMBOLS[symbol]
+    try:
+        price_data = cg.get_price(ids=coin_id, vs_currencies='usd')
+        price = price_data[coin_id]['usd']
+        precio_formateado = f"{price:,.2f}"
+        await update.message.reply_text(
+            f"📈 {symbol}: **${precio_formateado} USD**",
             parse_mode="Markdown"
         )
     except Exception as e:
-        await update.message.reply_text(
-            f"⚠️ No pude obtener el precio para *{symbol}*.\n"
-            f"Verifica el par e intenta nuevamente.",
-            parse_mode="Markdown"
-        )
+        await update.message.reply_text(f"⚠️ Error: {e}")
 
-# ✅ 5. Configuración principal del bot
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_symbol))
-
-    print("✅ RandyTrader está escuchando en Telegram...")
+    print("✅ RandyTrader con CoinGecko está online...")
     app.run_polling()
