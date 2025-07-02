@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+
+# Variables de entorno y claves secretas
+.env
+
+# Configuración de VS Code
+.vscode/
+
+# Archivos de logs
+*.log
+
+# Archivos de bases de datos locales
+*.sqlite3
+*.db
+
+# Archivos de test coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Archivos de distribución
+build/
+dist/
+*.egg-info/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
