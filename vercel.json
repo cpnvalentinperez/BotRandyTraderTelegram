@@ -2,14 +2,14 @@
     "version": 2,
     "builds": [
       {
-        "src": "api/RandyTrader.py",
+        "src": "api/index.py",
         "use": "@vercel/python"
       }
     ],
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "api/RandyTrader.py"
+        "dest": "api/index.py"
       }
     ]
   }
